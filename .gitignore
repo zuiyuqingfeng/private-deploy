@@ -1,0 +1,6 @@
+id_rsa 
+*/__pycache__
+rpm
+*.log
+config.yaml
+/resources/images.tar.gz

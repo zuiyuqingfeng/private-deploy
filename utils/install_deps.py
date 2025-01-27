@@ -19,10 +19,12 @@ def install_deps(conf):
             remote_file_path= os.path.join(remote_path,file)
             logger.debug(local_file_path+" :"+ remote_path)
             client.send_file(local_file_path,remote_file_path,ip)
+            logger.info(f"send rpms to {ip}")
             if remote_file_path.endswith(".tar.gz"):
                 client.exec(f"tar -zxf {remote_file_path} -C {remote_path}")
         install_rpm(client)
         init_env(client)
+        logger.info(f"{ip}init env finished ")
 
 def install_rpm(client:SSH_Client):
     cmd = "bash /tmp/install-rpm.sh"

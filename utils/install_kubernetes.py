@@ -65,12 +65,18 @@ def install_master(conf,client:SSH_Client):
             ret, std = client.exec(init_cmd.format(conf["slb"]))
             if ret!=0:
                 logger.error(std)
+                exit(2)
             else:
                 logger.info(std)
-                client.exec("bash /tmp/init-master.sh")
+                
             _init_master=True
 
-
+            # 初始化master 节点配置
+            ret, std = client.exec("bash /tmp/init-master.sh")
+            if ret == 0 :
+                logger.info("init master success")
+            else:
+                logger.warning("init master failed ,please check.")
             # 生成join cmd
             ret,std = client.exec('kubeadm token create --print-join-command')
             if ret == 0:

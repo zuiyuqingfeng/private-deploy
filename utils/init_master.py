@@ -7,12 +7,16 @@ from .logger import get_logger
 _init_master=False
 logger = get_logger(__name__)
 
+
+
 def init_master(conf):
     global _init_master
     client = SSH_Client()
+    # 生成配置文件
     render_kubeconfig(conf['master'][0])
     send_kubeadm_conf(conf,client)
-    load_images(conf,client)
+    # 使用kubeadm 安装master节点
+    install_master(conf,client)
 
 def render_kubeconfig(ip):
     
@@ -39,17 +43,30 @@ def send_kubeadm_conf(conf,client:SSH_Client):
     remote_kubeadm_conf_path = "/tmp/kubeadm.yaml"
     client.send_file(local_file_path=local_kubeadm_conf_path,remote_file_path=remote_kubeadm_conf_path,ip=conf['ips'][0])
 
-def load_images(conf,client:SSH_Client):
-    for ip in conf['ips']:
-        client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
-        ret, std = client.exec('bash /tmp/init-master.sh')
-        if ret!=0:
-            logger.error(std)
+
+def install_master(conf,client:SSH_Client):
+    init = True
+    for ip in conf['master']:
+        if init:
+            client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
+            ret, std = client.exec('bash /tmp/init-master.sh')
+            if ret!=0:
+                logger.error(std)
+            else:
+                logger.info(std)
+            init=False
         else:
-            logger.info(std)
+            client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
+            ret, std = client.exec(f'echo {ip} >> /tmp/join-master.log')
+            if ret!=0:
+                logger.error(std)
+            else:
+                logger.info(std)
 
 
-def inti_precheck():
+
+
+def init_precheck():
     pass
      
 

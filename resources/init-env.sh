@@ -28,3 +28,10 @@ echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
 ! grep "net.bridge.bridge-nf-call-iptables = 1" /etc/sysctl.conf >/dev/null && echo "net.bridge.bridge-nf-call-iptables = 1" |sudo tee -a  /etc/sysctl.conf
 ! grep "net.ipv4.ip_forward = 1" /etc/sysctl.conf >/dev/null && echo "net.ipv4.ip_forward = 1" |sudo tee -a /etc/sysctl.conf
 
+
+
+# 导入k8s 镜像
+for i in `ls /tmp/images`; 
+do
+    echo "ctr -n=k8s.io image import /tmp/images/$i"|bash 
+done

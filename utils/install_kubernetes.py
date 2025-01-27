@@ -4,8 +4,8 @@ import yaml,os
 from .paramiko_client import SSH_Client
 from .logger import get_logger
 
-_init_master=False
-_join_cmd =None
+_init_master = False
+_join_cmd = None
 
 KUBERNETES_VERSION="1.28.0"
 IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
@@ -55,6 +55,7 @@ def send_kubeadm_conf(conf,client:SSH_Client):
 
 def install_master(conf,client:SSH_Client):
     global _init_master
+    global _join_cmd
     init_cmd="kubeadm init --control-plane-endpoint {0}:6443 --pod-network-cidr=10.244.0.0/16 --image-repository=registry.cn-hangzhou.aliyuncs.com/google_containers --kubernetes-version=1.28.0 |tee /tmp/kubeadm-init.log"
     for ip in conf['master']:
         if not _init_master:
@@ -84,6 +85,7 @@ def install_master(conf,client:SSH_Client):
             else:
                 logger.error("generate join master cmd error, try to run 'kubeadm token create --print-join-command' on the first master server ")
                 logger.error(std)
+
 
             remote_ca_file="/tmp/ca.tar.gz"
             local_ca_file="./ca.tar.gz"

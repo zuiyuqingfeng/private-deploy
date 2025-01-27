@@ -45,6 +45,8 @@ done
 
 # 安装helm
 cp -f /tmp/linux-amd64/helm /usr/local/bin/helm
+# 安装istioctl 
+cp -f /tmp/istio-1.24.2/bin/istioctl /usr/local/bin/istioctl
 
 # 打包证书
 tar -zcf /tmp/ca.tar.gz /etc/kubernetes/admin.conf /etc/kubernetes/pki/ca.* /etc/kubernetes/pki/front-proxy-ca.* /etc/kubernetes/pki/sa.* /etc/kubernetes/pki/etcd/ca.*

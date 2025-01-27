@@ -14,7 +14,29 @@ fi
 # ! grep "allocate-node-cidrs=true" /etc/kubernetes/manifests/kube-controller-manager.yaml >/dev/null && sed -i "13a\    - --allocate-node-cidrs=true" /etc/kubernetes/manifests/kube-controller-manager.yaml
 # ! grep "cluster-cidr=10.244.0.0/16" /etc/kubernetes/manifests/kube-controller-manager.yaml >/dev/null && sed -i "14a\    - --cluster-cidr=10.244.0.0/16" /etc/kubernetes/manifests/kube-controller-manager.yaml
 # systemctl restart kubelet 
-kubectl apply -f /tmp/kube-flannel.yaml
+
+MAX_RETRIES=3
+RETRY_COUNT=0
+
+install_flannel(){
+    kubectl apply -f /tmp/kube-flannel.yaml
+    return $?
+    # if [ $? -eq 0 ];then 
+    #     return 0
+    # else
+    #     return 1
+    # fi
+}
+
+while ! install_flannel; do 
+    if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+        echo "达到最大重试次数，命令仍然失败。"
+        exit 1
+    fi
+    echo "命令失败，正在重试...（重试次数：$RETRY_COUNT）"
+    sleep 1  # 等待1秒后重试
+    ((RETRY_COUNT++))
+done
 
 
 #添加命令补全

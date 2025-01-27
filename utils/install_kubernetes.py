@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 
 def install_k8s(conf):
     global _init_master
+    global _join_cmd
     client = SSH_Client()
     # 生成配置文件
     #render_kubeconfig(conf['slb'])
@@ -92,7 +93,6 @@ def install_master(conf,client:SSH_Client):
                 else:
                     logger.warning("init {ip} failed ,please check.")
 
-
 def install_worker(conf,client):
     global _join_cmd
     if _join_cmd != None:
@@ -106,6 +106,8 @@ def install_worker(conf,client):
                 else:
                     logger.info(f'join worker {ip} success!')
                     logger.info(std)
+            else:
+                logger.info(f"join worker, skip master {ip}")
     else:
         logger.error('_join_cmd is None,Please check.')
 

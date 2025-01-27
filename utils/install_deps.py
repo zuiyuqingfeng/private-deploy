@@ -24,7 +24,7 @@ def install_deps(conf):
                 client.exec(f"tar -zxf {remote_file_path} -C {remote_path}")
         install_rpm(client)
         init_env(client)
-        logger.info(f"{ip}init env finished ")
+        logger.info(f"{ip} init env finished ")
 
 def install_rpm(client:SSH_Client):
     cmd = "bash /tmp/install-rpm.sh"

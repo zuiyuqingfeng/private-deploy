@@ -39,6 +39,11 @@ class SSH_Client():
         sftp.put(local_file_path,remote_file_path,progress_callback,confirm=True)
         sftp.close()
 
+    def get_file(self,remote_file_path,local_file_path):
+        sftp = self.client.open_sftp()
+        sftp.get(remote_file_path,local_file_path)
+        sftp.close()
+
 
     def close_client(self):
         self.client.close()

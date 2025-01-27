@@ -59,6 +59,9 @@ def install_master(conf,client:SSH_Client):
     for ip in conf['master']:
         if not _init_master:
             client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
+            
+            # 初始化集群 
+            # kubeadm init 
             ret, std = client.exec(init_cmd.format(conf["slb"]))
             if ret!=0:
                 logger.error(std)
@@ -67,17 +70,37 @@ def install_master(conf,client:SSH_Client):
                 client.exec("bash /tmp/init-master.sh")
             _init_master=True
 
+
+            # 生成join cmd
             ret,std = client.exec('kubeadm token create --print-join-command')
             if ret == 0:
                 _join_cmd=std 
             else:
                 logger.error("generate join master cmd error, try to run 'kubeadm token create --print-join-command' on the first master server ")
                 logger.error(std)
+
+            remote_ca_file="/tmp/ca.tar.gz"
+            local_ca_file="./ca.tar.gz"
+            client.get_file(remote_ca_file,local_ca_file)
+
         else:
             if _join_cmd!=None:
-                logger.info(f"join master: exec {_join_cmd} --control-plane on {ip}")
+                
+                local_ca_file="./ca.tar.gz"
+
                 client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
                 
+                client.send_file(local_ca_file,"/tmp/ca.tar.gz")
+                
+                logger.info("send kubernetes CA file to {0}".format(ip))
+
+                ret, std = client.exec("tar -zxf /tmp/ca.tar.gz -C /")
+                if ret == 0 :
+                    logger.info(f"decompress ca file on {ip} succeeded.")
+                else:
+                    logger.error(f"decompress ca file on {ip} failed ,please check.")
+
+                logger.info(f"join master: exec {_join_cmd} --control-plane on {ip}")
                 ret, std = client.exec(_join_cmd+"  --control-plane")
                 if ret!=0:
                     logger.error('join master error,please check')
@@ -88,11 +111,12 @@ def install_master(conf,client:SSH_Client):
 
 
 def install_worker(conf,client):
+    global _join_cmd
     if _join_cmd != None:
         for ip in conf['ips']:
             if ip not in conf['master']:
                 client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
-                ret, std = client.exec(f'{_join_cmd}')
+                ret, std = client.exec(_join_cmd)
                 if ret!=0:
                     logger.error(f'join worker {ip} error,please check')
                     logger.error(std)
@@ -100,7 +124,7 @@ def install_worker(conf,client):
                     logger.info(f'join worker {ip} success!')
                     logger.info(std)
     else:
-        logger.error('join_cmd is None,Please check.')
+        logger.error('_join_cmd is None,Please check.')
 
 
 

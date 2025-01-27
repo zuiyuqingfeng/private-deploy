@@ -46,6 +46,7 @@ def send_kubeadm_conf(conf,client:SSH_Client):
 
 def install_master(conf,client:SSH_Client):
     init = True
+    join_cmd =None
     for ip in conf['master']:
         if init:
             client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
@@ -55,13 +56,23 @@ def install_master(conf,client:SSH_Client):
             else:
                 logger.info(std)
             init=False
-        else:
-            client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
-            ret, std = client.exec(f'echo {ip} >> /tmp/join-master.log')
-            if ret!=0:
-                logger.error(std)
+
+            ret,std = client.exec('kubeadm token create --print-join-command')
+            if ret == 0:
+                join_cmd=std 
             else:
-                logger.info(std)
+                logger.error("generate join master cmd error, try to run 'kubeadm token create --print-join-command' on the first master server ")
+                logger.error(std)
+        else:
+            if join_cmd!=None:
+                client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
+                ret, std = client.exec(f'{join_cmd}')
+                if ret!=0:
+                    logger.error('join master error,please check')
+                    logger.error(std)
+                else:
+                    logger.info('join master success!')
+                    logger.info(std)
 
 
 

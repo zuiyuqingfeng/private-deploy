@@ -7,6 +7,13 @@ from .logger import get_logger
 _init_master=False
 _join_cmd =None
 
+KUBERNETES_VERSION="1.28.0"
+IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
+POD_NETWORK_CIDR="10.244.0.0/16"
+cmd =""" 
+ kubeadm init --control-plane-endpoint {slb}:6443 --pod-network-cidr={POD_NETWORK_CIDR} --image-repository={IMAGE_REPOSITORY} --kubernetes-version={KUBERNETES_VERSION}
+"""
+
 logger = get_logger(__name__)
 
 
@@ -48,14 +55,16 @@ def send_kubeadm_conf(conf,client:SSH_Client):
 
 def install_master(conf,client:SSH_Client):
     global _init_master
+    init_cmd="kubeadm init --control-plane-endpoint {0}:6443 --pod-network-cidr=10.244.0.0/16 --image-repository=registry.cn-hangzhou.aliyuncs.com/google_containers --kubernetes-version=1.28.0 |tee /tmp/kubeadm-init.log"
     for ip in conf['master']:
         if not _init_master:
             client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
-            ret, std = client.exec('bash /tmp/init-master.sh')
+            ret, std = client.exec(init_cmd.format(conf["slb"]))
             if ret!=0:
                 logger.error(std)
             else:
                 logger.info(std)
+                client.exec("bash /tmp/init-master.sh")
             _init_master=True
 
             ret,std = client.exec('kubeadm token create --print-join-command')
@@ -66,8 +75,10 @@ def install_master(conf,client:SSH_Client):
                 logger.error(std)
         else:
             if _join_cmd!=None:
+                logger.info(f"join master: exec {_join_cmd} --control-plane on {ip}")
                 client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
-                ret, std = client.exec(f'{_join_cmd}')
+                
+                ret, std = client.exec(_join_cmd+"  --control-plane")
                 if ret!=0:
                     logger.error('join master error,please check')
                     logger.error(std)

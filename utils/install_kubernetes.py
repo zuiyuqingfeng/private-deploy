@@ -42,7 +42,7 @@ def install_master(conf,client:SSH_Client):
             _init_master=True
 
             # 初始化master 节点配置
-            ret, std = client.exec("bash /tmp/init-master.sh")
+            ret, std = client.exec("bash  /tmp/init-master.sh")
             if ret == 0 :
                 logger.info("init master success")
             else:
@@ -52,7 +52,7 @@ def install_master(conf,client:SSH_Client):
             if ret == 0:
                 _join_cmd=std 
             else:
-                logger.error("generate join master cmd error, try to run 'kubeadm token create --print-join-command' on the {ip} server ")
+                logger.error(f"generate join master cmd error, try to run 'kubeadm token create --print-join-command' on the {ip} server ")
                 logger.error(std)
 
 
@@ -80,10 +80,10 @@ def install_master(conf,client:SSH_Client):
                 logger.info(f"join master: exec {_join_cmd} --control-plane on {ip}")
                 ret, std = client.exec(_join_cmd+"  --control-plane")
                 if ret!=0:
-                    logger.error('join master {ip} error,please check')
+                    logger.error(f'join master {ip} error,please check')
                     logger.error(std)
                 else:
-                    logger.info('join master {ip} success!')
+                    logger.info(f'join master {ip} success!')
                     logger.info(std)
 
                 # 初始化master 节点配置

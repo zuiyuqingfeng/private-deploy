@@ -7,12 +7,6 @@ from .logger import get_logger
 _init_master = False
 _join_cmd = None
 
-KUBERNETES_VERSION="1.28.0"
-IMAGE_REPOSITORY="registry.cn-hangzhou.aliyuncs.com/google_containers"
-POD_NETWORK_CIDR="10.244.0.0/16"
-cmd =""" 
- kubeadm init --control-plane-endpoint {slb}:6443 --pod-network-cidr={POD_NETWORK_CIDR} --image-repository={IMAGE_REPOSITORY} --kubernetes-version={KUBERNETES_VERSION}
-"""
 
 logger = get_logger(__name__)
 
@@ -21,37 +15,11 @@ def install_k8s(conf):
     global _init_master
     client = SSH_Client()
     # 生成配置文件
-    render_kubeconfig(conf['slb'])
-    send_kubeadm_conf(conf,client)
+    #render_kubeconfig(conf['slb'])
+    #send_kubeadm_conf(conf,client)
     # 使用kubeadm 安装master节点
     install_master(conf,client)
     install_worker(conf,client)
-
-def render_kubeconfig(ip):
-    
-    tempfile = 'config/template/kubeadm.yaml'
-    configfile = 'config/conf/kubeadm.yaml'
-    PWD = os.getcwd()
-    tempfile_path = os.path.join(PWD,tempfile)
-    configfile = os.path.join(PWD,configfile)
-
-    with open(tempfile_path,'r') as f:
-        data = list(yaml.safe_load_all(f))
-        data[0]['localAPIEndpoint']['advertiseAddress'] = ip
-        # for i in data[0]:
-        #     if 'localAPIEndpoint' in i and 'advertiseAddress' in i['localAPIEndpoint']:
-        #         data[0]['localAPIEndpoint']['advertiseAddress']=ip
-
-    with open (configfile,'w') as f:
-        yaml.safe_dump_all(data, f,default_flow_style=False)    
-
-def send_kubeadm_conf(conf,client:SSH_Client):
-    client.connect(ip=conf['master'][0],username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
-    PWD =os.getcwd()
-    local_kubeadm_conf_path= os.path.join(PWD,"config/conf/kubeadm.yaml")
-    remote_kubeadm_conf_path = "/tmp/kubeadm.yaml"
-    client.send_file(local_file_path=local_kubeadm_conf_path,remote_file_path=remote_kubeadm_conf_path,ip=conf['ips'][0])
-
 
 def install_master(conf,client:SSH_Client):
     global _init_master
@@ -83,7 +51,7 @@ def install_master(conf,client:SSH_Client):
             if ret == 0:
                 _join_cmd=std 
             else:
-                logger.error("generate join master cmd error, try to run 'kubeadm token create --print-join-command' on the first master server ")
+                logger.error("generate join master cmd error, try to run 'kubeadm token create --print-join-command' on the {ip} server ")
                 logger.error(std)
 
 
@@ -100,7 +68,7 @@ def install_master(conf,client:SSH_Client):
                 
                 client.send_file(local_ca_file,"/tmp/ca.tar.gz",ip=ip)
                 
-                logger.info("send kubernetes CA file to {0}".format(ip))
+                logger.info(f"send kubernetes CA file to {ip}")
 
                 ret, std = client.exec("tar -zxf /tmp/ca.tar.gz -C /")
                 if ret == 0 :
@@ -111,11 +79,18 @@ def install_master(conf,client:SSH_Client):
                 logger.info(f"join master: exec {_join_cmd} --control-plane on {ip}")
                 ret, std = client.exec(_join_cmd+"  --control-plane")
                 if ret!=0:
-                    logger.error('join master error,please check')
+                    logger.error('join master {ip} error,please check')
                     logger.error(std)
                 else:
-                    logger.info('join master success!')
+                    logger.info('join master {ip} success!')
                     logger.info(std)
+
+                # 初始化master 节点配置
+                ret, std = client.exec("bash /tmp/init-master.sh")
+                if ret == 0 :
+                    logger.info("init {ip} success")
+                else:
+                    logger.warning("init {ip} failed ,please check.")
 
 
 def install_worker(conf,client):
@@ -134,6 +109,35 @@ def install_worker(conf,client):
     else:
         logger.error('_join_cmd is None,Please check.')
 
+def install_istio():
+    pass
+
+
+
+def render_kubeconfig(ip):
+    
+    tempfile = 'config/template/kubeadm.yaml'
+    configfile = 'config/conf/kubeadm.yaml'
+    PWD = os.getcwd()
+    tempfile_path = os.path.join(PWD,tempfile)
+    configfile = os.path.join(PWD,configfile)
+
+    with open(tempfile_path,'r') as f:
+        data = list(yaml.safe_load_all(f))
+        data[0]['localAPIEndpoint']['advertiseAddress'] = ip
+        # for i in data[0]:
+        #     if 'localAPIEndpoint' in i and 'advertiseAddress' in i['localAPIEndpoint']:
+        #         data[0]['localAPIEndpoint']['advertiseAddress']=ip
+
+    with open (configfile,'w') as f:
+        yaml.safe_dump_all(data, f,default_flow_style=False)    
+
+def send_kubeadm_conf(conf,client:SSH_Client):
+    client.connect(ip=conf['master'][0],username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
+    PWD =os.getcwd()
+    local_kubeadm_conf_path= os.path.join(PWD,"config/conf/kubeadm.yaml")
+    remote_kubeadm_conf_path = "/tmp/kubeadm.yaml"
+    client.send_file(local_file_path=local_kubeadm_conf_path,remote_file_path=remote_kubeadm_conf_path,ip=conf['ips'][0])
 
 
 def init_precheck():

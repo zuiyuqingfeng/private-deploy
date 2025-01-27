@@ -19,3 +19,6 @@ source <(kubectl completion bash)
 
 # 安装helm
 cp -f /tmp/linux-amd64/helm /usr/local/bin/helm
+
+# 打包证书
+tar -zcf /tmp/ca.tar.gz /etc/kubernetes/admin.conf /etc/kubernetes/pki/ca.* /etc/kubernetes/pki/front-proxy-ca.* /etc/kubernetes/pki/sa.* /etc/kubernetes/pki/etcd/ca.*

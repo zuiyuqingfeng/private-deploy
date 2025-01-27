@@ -90,7 +90,7 @@ def install_master(conf,client:SSH_Client):
 
                 client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
                 
-                client.send_file(local_ca_file,"/tmp/ca.tar.gz")
+                client.send_file(local_ca_file,"/tmp/ca.tar.gz",ip=ip)
                 
                 logger.info("send kubernetes CA file to {0}".format(ip))
 

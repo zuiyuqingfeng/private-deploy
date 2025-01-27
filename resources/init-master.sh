@@ -1,6 +1,6 @@
 #!/bin/bash 
 
-if [! -d $HOME/.kube ] ;then
+if [ ! -d $HOME/.kube ] ;then
     mkdir -p $HOME/.kube
     sudo cp -f /etc/kubernetes/admin.conf $HOME/.kube/config
     sudo chown $(id -u):$(id -g) $HOME/.kube/config
@@ -18,7 +18,7 @@ kubectl apply -f /tmp/kube-flannel.yaml
 
 
 #添加命令补全
-source <(kubectl completion bash)
+#source <(kubectl completion bash)
 ! grep "kubectl completion bash"  ~/.bashrc && echo "source <(kubectl completion bash)" >> ~/.bashrc
 
 # 安装helm

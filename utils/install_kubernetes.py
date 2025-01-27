@@ -5,18 +5,20 @@ from .paramiko_client import SSH_Client
 from .logger import get_logger
 
 _init_master=False
+_join_cmd =None
+
 logger = get_logger(__name__)
 
 
-
-def init_master(conf):
+def install_k8s(conf):
     global _init_master
     client = SSH_Client()
     # 生成配置文件
-    render_kubeconfig(conf['master'][0])
+    render_kubeconfig(conf['slb'])
     send_kubeadm_conf(conf,client)
     # 使用kubeadm 安装master节点
     install_master(conf,client)
+    install_worker(conf,client)
 
 def render_kubeconfig(ip):
     
@@ -45,28 +47,27 @@ def send_kubeadm_conf(conf,client:SSH_Client):
 
 
 def install_master(conf,client:SSH_Client):
-    init = True
-    join_cmd =None
+    global _init_master
     for ip in conf['master']:
-        if init:
+        if not _init_master:
             client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
             ret, std = client.exec('bash /tmp/init-master.sh')
             if ret!=0:
                 logger.error(std)
             else:
                 logger.info(std)
-            init=False
+            _init_master=True
 
             ret,std = client.exec('kubeadm token create --print-join-command')
             if ret == 0:
-                join_cmd=std 
+                _join_cmd=std 
             else:
                 logger.error("generate join master cmd error, try to run 'kubeadm token create --print-join-command' on the first master server ")
                 logger.error(std)
         else:
-            if join_cmd!=None:
+            if _join_cmd!=None:
                 client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
-                ret, std = client.exec(f'{join_cmd}')
+                ret, std = client.exec(f'{_join_cmd}')
                 if ret!=0:
                     logger.error('join master error,please check')
                     logger.error(std)
@@ -74,6 +75,21 @@ def install_master(conf,client:SSH_Client):
                     logger.info('join master success!')
                     logger.info(std)
 
+
+def install_worker(conf,client):
+    if _join_cmd != None:
+        for ip in conf['ips']:
+            if ip not in conf['master']:
+                client.connect(ip=ip,username=conf['ssh_user'],password=conf['ssh_password'],port=conf['ssh_port'],private_key_path=conf['ssh_private_key_path'])
+                ret, std = client.exec(f'{_join_cmd}')
+                if ret!=0:
+                    logger.error(f'join worker {ip} error,please check')
+                    logger.error(std)
+                else:
+                    logger.info(f'join worker {ip} success!')
+                    logger.info(std)
+    else:
+        logger.error('join_cmd is None,Please check.')
 
 
 

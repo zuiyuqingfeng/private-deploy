@@ -1,9 +1,5 @@
 #!/bin/bash 
 
-for i in `ls /tmp/images`; 
-do
-    echo "ctr -n=k8s.io image import /tmp/images/$i"|bash 
-done
 
 kubeadm init --config /tmp/kubeadm.yaml |tee /tmp/kubeadm-init.log
 if [ $?==0 ];then 

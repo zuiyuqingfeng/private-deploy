@@ -53,3 +53,6 @@ tar -zcf /tmp/ca.tar.gz /etc/kubernetes/admin.conf /etc/kubernetes/pki/ca.* /etc
 
 # 移除taint
 kubectl taint node iz8vbd0h23t71i2eimrqxfz node-role.kubernetes.io/control-plane-
+
+#安装istio
+istioctl install --set profile=demo --skip-confirmation

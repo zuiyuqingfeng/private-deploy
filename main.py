@@ -3,6 +3,7 @@ from utils.logger import setup_logging,get_logger
 from utils.check_os import check
 from utils.install_deps import install_deps
 from utils.install_kubernetes import install_k8s
+from utils.install_service import install_service
 
 setup_logging()
 logger = get_logger(__name__)
@@ -11,6 +12,7 @@ def init(conf):
     if check(conf):
         install_deps(conf)
         install_k8s(conf)
+        install_service(conf)
 
 if __name__ == "__main__":
     logger.info("laiye private deploy ... ")

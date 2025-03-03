@@ -50,3 +50,6 @@ cp -f /tmp/istio-1.24.2/bin/istioctl /usr/local/bin/istioctl
 
 # 打包证书
 tar -zcf /tmp/ca.tar.gz /etc/kubernetes/admin.conf /etc/kubernetes/pki/ca.* /etc/kubernetes/pki/front-proxy-ca.* /etc/kubernetes/pki/sa.* /etc/kubernetes/pki/etcd/ca.*
+
+# 移除taint
+kubectl taint node iz8vbd0h23t71i2eimrqxfz node-role.kubernetes.io/control-plane-
